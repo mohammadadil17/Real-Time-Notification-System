@@ -2,16 +2,16 @@ import redis
 import sqlalchemy
 from confluent_kafka.admin import AdminClient
 from fastapi import APIRouter
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
 from app.core.config import settings
+from app.db.session import engine
 
 router = APIRouter()
 
 
 def _check_postgres() -> str:
     try:
-        engine = create_engine(settings.database_url, pool_pre_ping=True)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return "ok"

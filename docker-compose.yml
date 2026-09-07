@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: notif-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: notif_user
       POSTGRES_PASSWORD: notif_pass
@@ -19,6 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: notif-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -30,6 +32,7 @@ services:
   kafka:
     image: apache/kafka:3.8.0
     container_name: notif-kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
       - "29092:29092"
@@ -57,6 +60,7 @@ services:
   migrate:
     build: .
     container_name: notif-migrate
+    restart: on-failure:5
     command: sh -c "alembic upgrade head && python -m app.db.seed"
     environment:
       POSTGRES_HOST: postgres
@@ -69,6 +73,7 @@ services:
   app:
     build: .
     container_name: notif-app
+    restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
@@ -95,6 +100,7 @@ services:
   consumer:
     build: .
     container_name: notif-consumer
+    restart: unless-stopped
     command: python -m app.consumers.notification_consumer
     environment:
       POSTGRES_HOST: postgres
@@ -113,6 +119,7 @@ services:
   digest-worker:
     build: .
     container_name: notif-digest-worker
+    restart: unless-stopped
     command: python -m app.consumers.digest_worker
     environment:
       POSTGRES_HOST: postgres

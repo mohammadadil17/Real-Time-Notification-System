@@ -1,4 +1,5 @@
 import signal
+import sys
 import time
 
 from app.core.config import settings
@@ -24,7 +25,17 @@ def run() -> None:
 
     while running:
         for user_id in scan_due_user_ids():
-            notification = flush_user_batch(user_id)
+            try:
+                notification = flush_user_batch(user_id)
+            except Exception as exc:
+                # One user's batch failing (e.g. a transient DB hiccup) must not
+                # take down the loop for every other due user.
+                print(
+                    f"[digest-worker] failed to flush batch for user_id={user_id}: {exc}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                continue
             if notification is not None:
                 print(
                     f"[digest-worker] created digest id={notification.id} "

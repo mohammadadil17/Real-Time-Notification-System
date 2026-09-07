@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
+    batch_window_seconds: int = 30
+    digest_poll_interval_seconds: int = 5
+
     @property
     def database_url(self) -> str:
         return (

@@ -98,7 +98,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       kafka:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  digest-worker:
+    build: .
+    container_name: notif-digest-worker
+    command: python -m app.consumers.digest_worker
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully

@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.db.redis import redis_client
 from app.db.session import engine
 
 router = APIRouter()
@@ -21,10 +22,7 @@ def _check_postgres() -> str:
 
 def _check_redis() -> str:
     try:
-        client = redis.Redis(
-            host=settings.redis_host, port=settings.redis_port, socket_connect_timeout=2
-        )
-        client.ping()
+        redis_client.ping()
         return "ok"
     except redis.RedisError as exc:
         return f"unreachable: {exc.__class__.__name__}"

@@ -11,3 +11,4 @@ class EventOut(BaseModel):
     payload: dict
     occurred_at: datetime
     created_at: datetime
+    notification_id: int | None

@@ -18,3 +18,6 @@ class Event(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    notification_id: Mapped[int | None] = mapped_column(
+        ForeignKey("notifications.id"), index=True, nullable=True
+    )

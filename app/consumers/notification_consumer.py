@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.event import Event
 from app.producers.kafka_producer import EVENTS_TOPIC
+from app.services.batching import add_to_batch
 
 GROUP_ID = "notification-consumer"
 
@@ -24,7 +25,7 @@ def build_consumer() -> Consumer:
     )
 
 
-def handle_message(db, raw_value: bytes) -> None:
+def handle_message(db, raw_value: bytes) -> Event:
     data = json.loads(raw_value)
     event = Event(
         user_id=data["user_id"],
@@ -34,6 +35,9 @@ def handle_message(db, raw_value: bytes) -> None:
     )
     db.add(event)
     db.commit()
+    db.refresh(event)
+    add_to_batch(user_id=event.user_id, event_id=event.id)
+    return event
 
 
 def run() -> None:
@@ -61,7 +65,7 @@ def run() -> None:
 
             db = SessionLocal()
             try:
-                handle_message(db, msg.value())
+                event = handle_message(db, msg.value())
             except Exception as exc:
                 db.rollback()
                 # Skip committing so this offset is redelivered on restart, rather
@@ -69,9 +73,8 @@ def run() -> None:
                 print(f"[notification-consumer] failed to process message: {exc}", file=sys.stderr, flush=True)
             else:
                 consumer.commit(message=msg)
-                data = json.loads(msg.value())
                 print(
-                    f"[notification-consumer] stored event user_id={data['user_id']} type={data['type']}",
+                    f"[notification-consumer] stored event user_id={event.user_id} type={event.type}",
                     flush=True,
                 )
             finally:

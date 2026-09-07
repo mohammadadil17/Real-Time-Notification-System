@@ -1,0 +1,32 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker git
+
+systemctl enable docker
+systemctl start docker
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -sSL https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/app
+git clone --branch "${github_repo_branch}" --depth 1 "${github_repo_url}" /opt/app
+cd /opt/app
+
+cat > .env <<EOF
+POSTGRES_HOST=${data_private_ip}
+REDIS_HOST=${data_private_ip}
+KAFKA_BOOTSTRAP_SERVERS=${data_private_ip}:29092
+JWT_SECRET_KEY=${jwt_secret_key}
+EOF
+
+# --no-deps: docker-compose.yml still declares postgres/redis/kafka/migrate
+# as dependencies of these services (that's what makes local single-host dev
+# work with one "docker compose up"). On this host those services shouldn't
+# run at all — Postgres/Redis/Kafka are already running on the data
+# instance — so --no-deps starts only the three named services and leaves
+# their dependency declarations unused here.
+docker compose up -d --no-deps app consumer digest-worker

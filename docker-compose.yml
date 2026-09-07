@@ -81,6 +81,9 @@ services:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # Same pattern as KAFKA_ADVERTISED_HOST: defaults to the (insecure) local
+      # dev value, overridden via a host-side .env file in real deployments.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
     depends_on:
       postgres:
         condition: service_healthy

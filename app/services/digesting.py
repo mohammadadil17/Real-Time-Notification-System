@@ -5,6 +5,7 @@ from app.db.session import SessionLocal
 from app.models.event import Event
 from app.models.notification import Notification
 from app.services.batching import pop_batch_event_ids
+from app.services.caching import invalidate_notifications_cache
 
 
 def flush_user_batch(user_id: int) -> Notification | None:
@@ -28,6 +29,7 @@ def flush_user_batch(user_id: int) -> Notification | None:
 
         db.commit()
         db.refresh(notification)
+        invalidate_notifications_cache(user_id)
         return notification
     finally:
         db.close()

@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker git
+
+systemctl enable docker
+systemctl start docker
+
+# Amazon Linux 2023's repos don't ship the Compose v2 plugin; install it the
+# way Docker's own docs recommend for any distro without a packaged version.
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -sSL https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/app
+git clone --branch "${github_repo_branch}" --depth 1 "${github_repo_url}" /opt/app
+cd /opt/app
+
+# Discover our own private IP via IMDSv2 so Kafka can advertise an address
+# other EC2 instances can actually reach (see docker-compose.yml's comment on
+# KAFKA_ADVERTISED_HOST for why this matters).
+IMDS_TOKEN=$(curl -sS -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+PRIVATE_IP=$(curl -sS -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" \
+  http://169.254.169.254/latest/meta-data/local-ipv4)
+
+cat > .env <<EOF
+KAFKA_ADVERTISED_HOST=$PRIVATE_IP
+EOF
+
+# Only the stateful services run here. "docker compose up migrate" (no -d)
+# blocks until the migration container exits, so this script — and therefore
+# this instance's user-data completion signal — doesn't finish until the
+# schema actually exists.
+docker compose up -d postgres redis kafka
+docker compose up migrate

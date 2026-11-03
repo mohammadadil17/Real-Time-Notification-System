@@ -5,19 +5,22 @@ from app.db.session import SessionLocal
 from app.models.user import User
 
 SEED_PASSWORD = "Password123!"
-SEED_EMAILS = [f"user{i}@example.com" for i in range(1, 6)]
+# 50 so each Locust user can log in as its own account (see loadtest/locustfile.py).
+SEED_EMAILS = [f"user{i}@example.com" for i in range(1, 51)]
 
 
 def seed_users() -> None:
     db = SessionLocal()
     try:
-        if db.scalar(select(User)) is not None:
+        existing = set(db.scalars(select(User.email)).all())
+        missing = [email for email in SEED_EMAILS if email not in existing]
+        if not missing:
             print("Users already seeded, skipping.")
             return
-        for email in SEED_EMAILS:
+        for email in missing:
             db.add(User(email=email, hashed_password=hash_password(SEED_PASSWORD)))
         db.commit()
-        print(f"Seeded {len(SEED_EMAILS)} users (password for all: {SEED_PASSWORD})")
+        print(f"Seeded {len(missing)} users (password for all: {SEED_PASSWORD})")
     finally:
         db.close()
 

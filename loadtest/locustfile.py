@@ -1,10 +1,14 @@
+import itertools
 import random
 
 from locust import HttpUser, between, task
 
 SEEDED_USERS = [
-    {"email": f"user{i}@example.com", "password": "Password123!"} for i in range(1, 6)
+    {"email": f"user{i}@example.com", "password": "Password123!"} for i in range(1, 51)
 ]
+# Hand out accounts round-robin so up to 50 Locust users each get their own
+# cache key, instead of many users sharing one account's cached list.
+_account_ids = itertools.count()
 EVENT_TYPES = ["order", "payment", "delivery"]
 
 
@@ -12,7 +16,7 @@ class NotificationUser(HttpUser):
     wait_time = between(1, 3)
 
     def on_start(self) -> None:
-        creds = random.choice(SEEDED_USERS)
+        creds = SEEDED_USERS[next(_account_ids) % len(SEEDED_USERS)]
         response = self.client.post(
             "/auth/login",
             data={"username": creds["email"], "password": creds["password"]},

@@ -59,6 +59,7 @@ services:
 
   migrate:
     build: .
+    image: realtime-notification-system:latest
     container_name: notif-migrate
     restart: on-failure:5
     command: sh -c "alembic upgrade head && python -m app.db.seed"
@@ -72,6 +73,7 @@ services:
 
   app:
     build: .
+    image: realtime-notification-system:latest
     container_name: notif-app
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -104,6 +106,7 @@ services:
 
   consumer:
     build: .
+    image: realtime-notification-system:latest
     container_name: notif-consumer
     restart: unless-stopped
     command: python -m app.consumers.notification_consumer
@@ -123,6 +126,7 @@ services:
 
   digest-worker:
     build: .
+    image: realtime-notification-system:latest
     container_name: notif-digest-worker
     restart: unless-stopped
     command: python -m app.consumers.digest_worker

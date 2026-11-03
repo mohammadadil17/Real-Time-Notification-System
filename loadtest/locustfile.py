@@ -27,7 +27,11 @@ class NotificationUser(HttpUser):
 
     @task(2)
     def list_notifications(self) -> None:
-        self.client.get("/notifications")
+        # Split stats by the X-Cache header so Redis hits and Postgres misses
+        # show up as separate rows with their own latency.
+        with self.client.get("/notifications", catch_response=True) as response:
+            cache_status = response.headers.get("X-Cache", "UNKNOWN")
+            response.request_meta["name"] = f"/notifications [{cache_status}]"
 
     @task(1)
     def list_events(self) -> None:

@@ -42,8 +42,7 @@ this** — see Teardown below.
    ```
    aws configure
    ```
-2. Terraform (already installed locally in this session via
-   `brew install hashicorp/tap/terraform`).
+2. Terraform (on macOS: `brew install hashicorp/tap/terraform`).
 3. The [Session Manager plugin for the AWS CLI](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
    if you want a shell on an instance for debugging (no SSH key is set up —
    see **Debugging access** below).
